@@ -49,6 +49,7 @@ extern int Dshot_1bit;
 
 TIM_HandleTypeDef htim3;
 DMA_HandleTypeDef hdma_tim3_ch3;
+DMA_HandleTypeDef hdma_tim3_ch4_up;
 
 /* USER CODE BEGIN PV */
 
@@ -65,7 +66,7 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint32_t Buffer_test[18] = {0};
 /* USER CODE END 0 */
 
 /**
@@ -99,9 +100,20 @@ int main(void)
   MX_DMA_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+		
+		pwmWriteDigital_one(Buffer_test,1500); //ÓÍÃÅÖµ1500/2047=73%
+
 	
-	Dshot_pwm_set();
-	
+//		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_3,(htim3.Instance->ARR-1)/2);
+//		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,(htim3.Instance->ARR-1)/2);
+			HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3); 
+			HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+
+		__HAL_TIM_ENABLE_DMA(&htim3, TIM_DMA_CC3);
+		__HAL_TIM_ENABLE_DMA(&htim3, TIM_DMA_CC4);		
+//	__HAL_TIM_DISABLE_DMA(&htim3, TIM_DMA_CC3);
+//	__HAL_TIM_DISABLE_DMA(&htim3, TIM_DMA_CC4);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -111,14 +123,16 @@ int main(void)
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_14);
 		HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_15);			
 		HAL_Delay(300);
-//		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_3,(htim3.Instance->ARR-1)/2);
-//		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,(htim3.Instance->ARR-1)/2);
-			__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_3,Dshot_0bit);
-			__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,Dshot_1bit);
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3); 
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+
 		
-		
+		HAL_DMA_Abort(&hdma_tim3_ch3);
+		HAL_DMA_Abort(&hdma_tim3_ch4_up);
+		HAL_DMA_Start(&hdma_tim3_ch3,(uint32_t)Buffer_test,(uint32_t)&htim3.Instance->CCR3,18);
+		HAL_DMA_Start(&hdma_tim3_ch4_up,(uint32_t)Buffer_test,(uint32_t)&htim3.Instance->CCR4,18);			
+
+
+
+			
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -260,6 +274,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
   /* DMA1_Stream7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
