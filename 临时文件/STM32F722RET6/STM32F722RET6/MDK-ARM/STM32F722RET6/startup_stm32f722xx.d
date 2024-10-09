@@ -1,1 +1,0 @@
-stm32f722ret6\startup_stm32f722xx.o: startup_stm32f722xx.s
